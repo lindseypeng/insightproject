@@ -6,6 +6,7 @@ Created on Wed May 22 14:34:26 2019
 """
 
 from bert_embedding import BertEmbedding
+#import mxnet as mx
 import numpy as np
 import pandas as pd
 from sklearn.manifold import TSNE
@@ -13,43 +14,27 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.cm as cm
 import matplotlib as mpl
+import re
 #example description for book#
-book_1 = """In a series of engaging and insightful examples—from the breeding of hens to the timing of \
-cataract surgeries to the organization of an automobile plant—Wilson shows how an evolutionary worldview provides a practical\
-tool kit for understanding not only genetic evolution but also the fast-paced changes that are having an impact on our world and ourselves. \
-What emerges is an incredibly empowering argument: If we can become wise managers of evolutionary processes, we can solve the problems of our \
-age at all scales—from the efficacy of our groups to our well-being as individuals to our stewardship of the planet Earth."""
-book_2 = """Fascinated by aging and mortality, West applied the rigor of a physicist to the biological question \
-of why we live as long as we do and no longer. The result was astonishing, and changed science: West found that despite \
-the riotous diversity in mammals, they are all, to a large degree, scaled versions of each other. If you know the size of a mammal,\
- you can use scaling laws to learn everything from how much food it eats per day, what its heart-rate is, how long it will take to\
- mature, its lifespan, and so on."""
-book_3="""The science of emotion is in the midst of a revolution on par with the discovery of relativity in physics\
- and natural selection in biology. Leading the charge is psychologist and neuroscientist Lisa Feldman Barrett, whose research\
- overturns the long-standing belief that emotions are automatic, universal, and hardwired in different brain regions. \
-Instead, Barrett shows, we construct each instance of emotion through a unique interplay of brain, body, and culture."""
 
+masterfile=pd.read_csv("/home/lindsey/insightproject/bookdescriptionfromgoodreads.csv")
 
-
-booknumbers=[1,2,3]
-bookparagraphs=[book_1,book_2,book_3]
-texttest=pd.DataFrame()
-for i in [0,1,2]:
-    book=pd.DataFrame( {'Book#':booknumbers[i], 'Description':bookparagraphs[i]},index=[str(booknumbers[i])])
-    texttest=texttest.append(book,ignore_index=True)  
-
+texttest=masterfile.iloc[0:30]
+texttest.reset_index()
 ###################################################EMBEDDING STARTS###############################################################
-    
 m=768
 i=0
 #shaspe of bert vector is 768
+
 avgs=pd.DataFrame()
 avgsstacks=np.empty((1000,m))#initialize arrays for embeddings with 1000 (more than enough) sentences
 for bo in np.arange(len(texttest)):##for every book
     currentbook=texttest.loc[texttest.index==bo]#extract one book at a time
+    currentbook=currentbook.reset_index()
     booknumber=np.array(currentbook['Book#'])#book number
     description=str(np.array(currentbook['Description']))#book description
     sentences=description.split('.')#split book description into senteces by comma separation
+#    ctx = mx.gpu(0)
     bert_embedding = BertEmbedding()
     result = bert_embedding(sentences)#convert book description into word embedding where each word is (768,)
     #average word embeddings
@@ -76,7 +61,7 @@ def f2hex(f2rgb, f):
     rgb = f2rgb.to_rgba(f)[:3]#change colormap f2rgb to rgba color, where a is opacity
     return '#%02x%02x%02x' % tuple([int(255*fc) for fc in rgb])##scaling values from 0 to 1 back to 0 to 255
 norm = colors.Normalize(vmin=0, vmax=max(np.array(avgs['book#'])))
-f2rgb = cm.ScalarMappable(norm=norm, cmap=cm.get_cmap('RdYlGn'))
+f2rgb = cm.ScalarMappable(norm=norm, cmap=cm.get_cmap('prism'))
 #
 for b in np.array(avgs['book#']):
     color=f2hex(f2rgb,b)
@@ -91,7 +76,7 @@ for axis in ['top','bottom','left','right']:
 
 ax.set_xlabel('x',fontsize=11,linespacing=3.2)
 ax.set_ylabel('y',fontsize=11,linespacing=3.2)
-#cb1=mpl.colorbar.ColorbarBase(ax,cmap=cmap,norm=norm,orientation='vertical')
+
 for i in range(len(x)):
     row=avgs.loc[avgs['index']==i]
     color=str(np.array(row['color'])).strip("['']")
@@ -99,5 +84,6 @@ for i in range(len(x)):
     a=ax.scatter(x[i],y[i], marker='o',c=str(color),s=100)
     ax.annotate(label,(x[i],y[i]))
 
-#plt.colorbar()
+
 plt.show()
+
