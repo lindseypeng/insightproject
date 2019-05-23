@@ -1,36 +1,49 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun May 19 19:27:00 2019
+from bs4 import BeautifulSoup
+import requests
+import re
+import pandas as pd
 
-@author: lindsey
-"""
-
-
-
-url="https://www.amazon.ca/This-View-Life-Completing-Revolution/dp/1101870206?pf_rd_p=6d4e5a04-483b-427e-8f01-aa9c5a81e67a&pd_rd_wg=wtuut&pf_rd_r=V4266G3A0ABRFA3QFMTZ&ref_=pd_gw_cr_simh&pd_rd_w=876Ax&pd_rd_r=fe73f8f7-4e6b-4094-9b7c-2836175ed3da"
-#bookname=""
-##extract bookdescription from amazon##
-def find_book_description(url,parsetype):#amazon uses lxml
-    from bs4 import BeautifulSoup
-    import requests
+def download_web(url):#amazon uses lxml    
     r=requests.get(url)
-    soup=BeautifulSoup(r.text,parsetype)
-    soup=soup.find_all(id="bookDescription_feature_div")
-    soupstr=str(soup)
-    text=soupstr.split("</div>")[0]
-    text=text.split("<noscript>")[1]
+    soup = BeautifulSoup(r.text, "html.parser")##do unit text
+    return soup
+    
+def find_description(soup):
+    soup2=soup.find_all(id="descriptionContainer")## do unit text
+    soupstr=str(soup2)
+    text=soupstr.split("<a data-text-id")[0]
+    text=text.split("freeTextContainer")[1]
     return text
 
-#remove all tags and clean abit
+#remove all tags and clean abit for goodreads
 def remove_tags(text):
-    import re
     tagswhere=re.compile('<.*?>')
     clean=re.sub(tagswhere,'',text)
     backwhere=re.compile('\n')
     cleaner=re.sub(backwhere,'',clean)
-    return cleaner
+    final=cleaner.split(">")[1]
+    return final
 
 #
-#def save_text(text):
+def make_frame(text,bookno,bookname):
+    book=pd.DataFrame( {'Book#':bookno, "Book_Title":bookname,'Description':text},index=[str([i])])
+    return book   
+
+import numpy as np
+booklist=pd.read_csv("/home/lindsey/Downloads/bookurl.csv")
+
+urls=booklist['URL']
+booknos=booklist['Book_#']
+booknames=booklist['Book_Name']
+texttest=pd.DataFrame()
+for i in np.arange(len(urls)):
+    url=urls[i]
+    bookno=booknos[i]
+    bookname=booknames[i]
+    soup=download_web(url)
+    text=find_description(soup)
+    final=remove_tags(text)
+    book=make_frame(final,bookno,bookname)
+    texttest=texttest.append(book,ignore_index=True) 
     
-    
+texttest.to_csv("/home/lindsey/Desktop/bookdescriptionfromgoodreads.csv")
