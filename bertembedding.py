@@ -43,6 +43,8 @@ for bo in np.arange(len(texttest)):##for every book
         avg=np.zeros(m,)#initiatlize matrix for stacking arrays of embeddings (number of sentences, 768)
         for w in np.arange(len(words)):#for each word embedding
             word=words[w]
+            if(len(words)==0):
+                continue
             avg += word#add array element wise(768,)
         avg=avg/len(words)#averages over all words()
         current=pd.DataFrame( {'book#':booknumber, 'sentence#': s,'array':[avg],"index":i},index=[str(booknumber)])
